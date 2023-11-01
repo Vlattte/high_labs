@@ -19,7 +19,7 @@ class Node:
             else:
                 self.__left_child = Node(value)
         elif value > self.__value:
-            if self.__left_child:
+            if self.__right_child:
                 self.__right_child.add_node(value)
             else:
                 self.__right_child = Node(value)
