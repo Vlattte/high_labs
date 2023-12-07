@@ -11,24 +11,43 @@ async def post_handler(request):
     """ добавление новой лабораторной """
     request_data = await request.json()
     lab_name = request_data["lab_name"]
-    status, reason = add_new_lab(lab_name)
+    status, reason = add_new_lab(request_data)
 
     message = str(request.url) + "/" + lab_name
-    return web.Response(text=message, status=status, reason=reason)
+    resp = web.Response(text=message, status=status, reason=reason)
+    resp.headers["Location"] = message
+    return resp
 
 
-def add_new_lab(lab_name):
+def add_new_lab(request_data):
     """ добавляем лабораторную, если такой еще не было """
-    status = 400
+    status = 409
     reason = "Такая лабораторная уже есть\n"
 
+    if "passed_students" in request_data:
+        status = 400
+        reason = "Лабораторная еще не добавлена, ее еще никто не мог сдать\n"
+        return status, reason
+
+    lab_name, description, dead_line = get_new_lab_params(request_data)
     if lab_name not in labs:
-        status = 200
+        status = 201
         reason = "OK"
-        labs[lab_name] = {"dead_line": "", "description": "", "passed_students": []}
+        labs[lab_name] = {"dead_line": dead_line, "description": description, "passed_students": []}
 
     return status, reason
 
+
+def get_new_lab_params(request_data):
+    lab_name = request_data["lab_name"]
+    description = ""
+    dead_line = ""
+
+    if "description" in request_data:
+        description = request_data["description"]
+    if "dead_line" in request_data:
+        dead_line = request_data["dead_line"]
+    return lab_name, description, dead_line
 
 @routes.delete('/labs')
 async def delete_all_labs(request):
@@ -45,19 +64,17 @@ async def delete_all_labs(request):
 
 
 @routes.delete('/labs/{lab_name}')
-async def get_lab(request):
+async def delete_lab(request):
     """ удаление лабораторной работы """
     lab_name = request.match_info["lab_name"]
 
-    status = 400
+    status = 404
     reason = "Такой лаборатоной нет на сервере"
 
     if lab_name in labs:
         status = 200
         reason = "OK"
-        print(labs)
         labs.pop(lab_name)
-        print(labs)
 
     return web.Response(text="", status=status, reason=reason)
 
@@ -67,7 +84,7 @@ async def get_lab(request):
     """ получение сведений о лабораторной работе """
     lab_name = request.match_info["lab_name"]
 
-    status = 400
+    status = 404
     reason = "Такой лаборатоной нет на сервере"
     message = ""
     if lab_name in labs:

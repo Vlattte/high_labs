@@ -171,7 +171,7 @@ async def update_one(filename, file_labs, lab_json):
     csv_file.close()
 
 
-async def edit_lab(args):
+async def add_or_edit_lab(args):
     message = {}
     if args.dead_line:
         message["dead_line"] = args.dead_line
@@ -221,7 +221,8 @@ async def main():
     if args.add:
         print("Добавление лабораторной")
         method = Methods.POST
-        message = {"lab_name": args.add}
+        message = await add_or_edit_lab(args)
+        message["lab_name"] = args.add
     if args.delete:
         print("Удаление лабораторной")
         method = Methods.DELETE
@@ -244,7 +245,7 @@ async def main():
 
         print("Изменение лабораторной")
         method = Methods.PUT
-        message = await edit_lab(args)
+        message = await add_or_edit_lab(args)
         url += "/" + args.edit
 
     await send_request(method=method, url=url, message=message)
