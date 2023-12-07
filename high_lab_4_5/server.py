@@ -23,13 +23,24 @@ def add_new_lab(request_data):
     """ добавляем лабораторную, если такой еще не было """
     status = 409
     reason = "Такая лабораторная уже есть\n"
+    lab_name = request_data["lab_name"]
+    dead_line = ""
+    description = ""
 
     if "passed_students" in request_data:
         status = 400
         reason = "Лабораторная еще не добавлена, ее еще никто не мог сдать\n"
         return status, reason
 
-    lab_name, description, dead_line = get_new_lab_params(request_data)
+    if "dead_line" in request_data:
+        status, reason = check_dead_line(request_data["dead_line"])
+        if status != 200:
+            return status, reason
+        dead_line = request_data["dead_line"]
+
+    if "description" in request_data:
+        description = request_data["description"]
+
     if lab_name not in labs:
         status = 201
         reason = "OK"
@@ -37,17 +48,6 @@ def add_new_lab(request_data):
 
     return status, reason
 
-
-def get_new_lab_params(request_data):
-    lab_name = request_data["lab_name"]
-    description = ""
-    dead_line = ""
-
-    if "description" in request_data:
-        description = request_data["description"]
-    if "dead_line" in request_data:
-        dead_line = request_data["dead_line"]
-    return lab_name, description, dead_line
 
 @routes.delete('/labs')
 async def delete_all_labs(request):
@@ -120,7 +120,7 @@ async def get_all_lab(request):
 
 
 @routes.put('/labs/{lab_name}')
-async def lab_name_post_handler(request):
+async def put_handler(request):
     """ добавление новой лабораторной """
     lab_name = request.match_info["lab_name"]
     request_data = await request.json()
@@ -160,7 +160,7 @@ def change_lab_param(lab_name, request_data):
 
 def check_dead_line(dead_line):
     status = 200
-    reason = ""
+    reason = "OK"
 
     if not re.fullmatch(r'\d{1,2}.\d{1,2}.\d{4}', dead_line):
         status = 400
